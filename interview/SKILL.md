@@ -7,122 +7,71 @@ disable-model-invocation: true
 
 # interview
 
-Do not start the work. Ask questions first, then write down what was agreed.
+Ask first, then write down what was agreed. Do not start the work.
 
 ## Usage
 
 ```
-/interview                          quick mode, topic = whatever we were just discussing
-/interview <topic>                  quick mode on that topic
-/interview quick <topic>            one round, max 3 questions
-/interview deep <topic>             rounds that build on each other until nothing is open
-/interview deep                     deep mode on the current work
+/interview                  quick, on whatever we were just discussing
+/interview <topic>          quick, on that topic
+/interview quick <topic>    one round, max 3 questions
+/interview deep <topic>     rounds until nothing open would change the work
 ```
 
-The first word of the argument is the mode if it is `quick` or `deep`; otherwise the whole argument is the topic and the mode is `quick`.
+The first word is the mode if it is `quick` or `deep`; otherwise it is all topic and the mode is quick. If there is no topic and no obvious current work, ask "What are we aligning on?" and start.
 
-Examples:
+## Rules
 
-```
-/interview deep migrate the billing service off Stripe Checkout
-/interview quick the new /export endpoint
-/interview deep                     (after a long design discussion, to pin it down)
-```
-
-If the topic is empty and there is no obvious current work, ask one plain question: "What are we aligning on?" Then start.
-
-## Rules for every mode
-
-1. Use the `AskUserQuestion` tool. One call per round, up to 4 questions per call.
-2. Never ask what you can find out yourself. Read the code, the config, the git history first. Ask only what the repo cannot answer: intent, priorities, taste, constraints that exist only in the user's head.
-3. Never ask a question whose answer would not change what you build. If both answers lead to the same work, drop it.
-4. Every question gets concrete options, not open prompts. "Which auth?" with four real choices beats "tell me about your auth needs." The user can always pick Other.
-5. Lead each option list with your recommendation, marked `(Recommended)`, and say why in the description.
-6. Use `multiSelect: true` when the choices are not exclusive (which features, which platforms).
-7. Ask about one decision per question. If a question needs "and", it is two questions.
-8. Reflect answers back before acting. End with an agreement block, then ask to proceed.
-
-## Building each round on the last
-
-This is what separates a good interview from a survey. Between rounds, do three things:
-
-1. **Investigate.** Open the files, configs, or dependencies the last answers pointed at. An answer that names a system is a lead, not a fact — go read it.
-2. **Propagate.** Every answer kills some questions and creates others. Drop what the answer settled. Add what it exposed.
-3. **Narrow.** Each round's options should be more specific than the last, because you know more. Round 1 asks between architectures; round 3 asks between two named functions.
-
-Concretely, an answer should trigger a follow-up when it:
-
-- **Implies a constraint you have not costed** — "must keep the old API working" → next round asks which clients, for how long, and whether a shim counts.
-- **Names something you have not read** — "it goes through the legacy importer" → go read it, then ask about the specific branch that will break.
-- **Reveals a hidden fork** — "just make it faster" → is the budget latency, throughput, or cost, and what is the current number.
-- **Is Other or free text** — always follow up. Free text means your options missed the real shape. Ask what you got wrong.
-- **Conflicts with an earlier answer** — surface both, ask which wins. Do not quietly pick one.
-- **Is a strong preference with no stated reason** — ask for the reason once, when the reason would change the design. A preference you understand generalizes to the next fifty decisions; one you don't have to re-ask.
-
-Do not follow up when the answer closed the question, when the follow-up is a detail you can decide yourself, or when you are asking only to look thorough. State assumptions instead and let the user correct them.
+1. `AskUserQuestion`, one call per round, up to 4 questions per call.
+2. Never ask what the repo can answer — read the code, config, and history first. Ask only for intent, priorities, taste, and constraints that exist solely in the user's head.
+3. Never ask a question whose answers all lead to the same work.
+4. Concrete options, never open prompts. "Which auth?" with four real choices beats "tell me about your auth needs."
+5. Lead with your recommendation, marked `(Recommended)`, and say why in the description.
+6. One decision per question. If it needs "and", it is two questions.
+7. `multiSelect: true` when the choices are not exclusive.
 
 ## Quick mode
 
-One round. At most 3 questions — the three whose answers most change the shape of the work, usually scope, approach, and done-criteria.
+One round, at most 3 questions — the three that most change the shape of the work, usually scope, approach, and done-criteria.
 
-One exception: if an answer comes back as Other, or contradicts the premise of the request, take a second round of at most 2 questions. Say why: "That changes the shape — two more."
-
-Then output:
-
-```
-Agreed:
-- Goal: <one line>
-- Scope: <in / out>
-- Approach: <one line>
-- Done when: <observable condition>
-```
-
-Then ask: "Start?" Wait for yes.
+If an answer comes back as Other or contradicts the premise, take one more round of at most 2. Say why: "That changes the shape — two more." Then the agreement.
 
 ## Deep mode
 
-Rounds of up to 4 questions until no open question would change the work. There is no round limit — the stopping condition is that nothing open would change what gets built, not a count. Simple work may settle in two rounds; a gnarly migration may take ten or more. Never stop while a real fork is still open, and never pad rounds to hit a number.
+Rounds of up to 4 questions until nothing open would change what gets built. Two rounds or ten, whichever the work needs — never stop on an open fork, never pad to hit a number. Name each round by what it covers ("Round 4 — constraints on the importer"), not by a countdown.
 
-Announce where you are each round by what it covers, not by a countdown: "Round 4 — constraints on the importer." Only estimate a total if you are genuinely near the end ("one or two more").
+Round 1 is always outcome and scope; you cannot ask a good approach question before you know what "done" means. From there: constraints, approach, done-criteria, risks — skipping what is settled and letting answers pull topics earlier.
 
-Cover in roughly this order, skipping what is already settled and letting answers pull topics earlier:
+Between rounds:
 
-1. **Outcome** — what is true when this is done, in observable terms. Who is it for.
-2. **Scope** — what is explicitly out. What is deferred rather than dropped.
-3. **Constraints** — deadlines, stack, compatibility, things that must not break, decisions already made that are not up for relitigation.
-4. **Approach** — the real fork in the road, with the trade-off on each branch.
-5. **Done-criteria** — how it gets verified. Tests, manual check, review, deploy.
-6. **Risks** — what would make this the wrong thing to build. What was tried before and failed.
+1. **Investigate.** An answer that names a system is a lead, not a fact. Go read it.
+2. **Propagate.** Drop what the answer settled, add what it exposed.
+3. **Narrow.** Round 1 asks between architectures; round 3 asks between two named functions.
 
-Round 1 is always outcome and scope; you cannot ask a good approach question before you know what "done" means.
+Then open the next round with one line of what you learned — that is how the user catches a wrong turn early — plus one line of what is already locked if the interview is running long.
 
-Between rounds, give one line of what you learned before asking again: "The importer has two entry points, so the migration is not one switch." That line is how the user catches a wrong turn early.
+Follow up when an answer:
 
-Stop when a round would only produce questions that do not change the work. Say so plainly: "No open questions left that change the plan." Length is not a reason to stop, and neither is the user having answered a lot already — if a round exposes three new forks, ask about them. Conversely, if round 2 settles everything, stop at round 2.
+- **implies an uncosted constraint** — "keep the old API working" → which clients, for how long, does a shim count.
+- **names something you have not read** — go read it, then ask about the branch that will break.
+- **hides a fork** — "just make it faster" → latency, throughput, or cost, and what is the number now.
+- **is Other or free text** — always. Your options missed the real shape; ask what you got wrong.
+- **conflicts with an earlier answer** — surface both, ask which wins. Do not quietly pick one.
+- **is a strong preference with no reason** — ask once, when the reason would change the design. A preference you understand generalizes to the next fifty decisions.
 
-If the interview runs long, keep it cheap to follow: before each round, restate in one line what is already locked so the user is not re-deriving it from scratch.
+Do not follow up on a closed question, on a detail you can decide yourself, or to look thorough. State the assumption and let the user correct it.
 
-Then write the agreement — to a file if the work spans sessions (`NOTES.md`, a scratchpad file, or wherever the project keeps such things; ask if unclear), otherwise inline:
+## The agreement
+
+Every interview ends with one, reflected back before any work starts. Write it to a file if the work spans sessions (`NOTES.md`, or wherever the project keeps such things), otherwise inline.
 
 ```
-## Agreement
-
 **Goal:** <one line>
-**For:** <who>
-
-**In scope:** <bullets>
-**Out of scope:** <bullets>
-
-**Constraints:** <bullets>
-**Approach:** <2-4 lines, plus the alternative rejected and why>
-
-**Assumptions:** <what you decided yourself instead of asking — the user's last chance to object>
+**Scope:** <in / out>
+**Approach:** <one line>
 **Done when:** <observable, checkable conditions>
-**Open risks:** <bullets, or "none">
 ```
 
-Then ask to proceed.
+Deep mode adds: **For** (who) after Goal, **Constraints** after Scope, the rejected alternative and why under Approach, and **Assumptions** (what you decided yourself instead of asking — the user's last chance to object) plus **Open risks** at the end.
 
-## After the interview
-
-Once the user says go, build to the agreement. If reality contradicts it mid-work, stop and say which part broke and what you propose instead — do not silently rewrite the agreement.
+Then ask to proceed and wait for yes. Once the user says go, build to the agreement — if reality contradicts it mid-work, stop and say which part broke and what you propose instead, rather than silently rewriting it.

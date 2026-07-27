@@ -7,71 +7,46 @@ disable-model-invocation: true
 
 # parallel
 
-Split the task into independent parts, launch one subagent per part **in a single message**, then merge the results yourself.
-
-This is deliberately smaller than `Workflow`. No script, no phases, no pipelines, no resume. One fan-out, one synthesis, done.
+Split the task into independent parts, launch one subagent per part **in a single message**, then merge the results yourself. One fan-out, one synthesis, no script.
 
 ## Usage
 
 ```
-/parallel <task>              you pick the split and the agent count
-/parallel n6 <task>           force 6 agents
+/parallel <task>      you pick the split and the count
+/parallel n6 <task>   force 6 agents
 /parallel n3 review the auth module for bugs, perf, and API design
-/parallel audit every package.json for outdated deps
 ```
 
-A leading `nN` sets the agent count. Otherwise pick it yourself: **3 to 6 is the sweet spot**. Below 3, just do it inline. Above 8, the synthesis costs more than the parallelism saves — say so and suggest `Workflow` instead.
+Default to 3–6 agents. Below 3, do it inline — spawning an agent to read a file you could read is pure overhead. Above 6, or if the parts depend on each other or need loops and retries, say so in one line and use `Workflow` instead.
 
-## When this is the wrong tool
+## The split
 
-Say so in one line and do that instead.
-
-- **The parts depend on each other** — part B needs part A's output. Do it sequentially, or use `Workflow`'s `pipeline()`.
-- **It needs loops, retries, or conditional stages** — that is `Workflow`.
-- **It is one file or one question** — do it inline. Spawning an agent to read a file you could read is pure overhead.
-- **The user has not opted into multi-agent work and this would balloon** — invoking `/parallel` *is* the opt-in for this task. It does not extend to the next one.
-
-## How to split
-
-Find the axis where the parts genuinely do not overlap. Good axes:
+Find the axis where parts genuinely do not overlap:
 
 - **By file or directory** — one agent per module. The most reliable split.
-- **By dimension** — one agent per lens over the same code: correctness, performance, security, API design. Each is blind to the others, which is the point.
-- **By question** — one agent per independent unknown.
-- **By candidate** — N agents each attempt the same task differently, you pick the best and graft in the good parts from the rest. Use for design and naming, not for edits.
+- **By dimension** — one lens each over the same code: correctness, perf, security, API design. Each is blind to the others, which is the point.
+- **By candidate** — N attempts at the same task, you pick the best and graft in the good parts of the rest. For design and naming, not for edits.
 
-Bad splits: parts that all read the same file (one agent, one read), or parts that are really one sequence chopped up.
+Bad splits: parts that all read the same file, or one sequence chopped up. When you don't know the shape, scout with one `Grep`/`ls` and fan out over the real list instead of a guessed one.
 
-Scout first when you don't know the shape. One cheap `Grep`/`Glob`/`ls` to get the actual list of files or modules beats guessing at the split — then fan out over the real list.
+## The prompts
 
-## Writing the prompts
+Each subagent starts with **zero** of this conversation. Every prompt carries:
 
-Each subagent starts with **zero** of this conversation. The prompt is the whole world it gets.
+1. **Absolute paths** — never "the auth file".
+2. **Its slice, and that it is a slice** — "You cover ONLY `src/api/`. Other agents cover the rest."
+3. **The return shape** — "each finding as `file:line — one-sentence problem`, no preamble. Your final text is the data, not a message to a person."
+4. **Read-only or write.**
 
-Every prompt must carry:
-
-1. **Absolute paths.** Never "the auth file" — `/Users/.../src/auth.ts`.
-2. **Its slice, and the fact that it is a slice.** "You cover ONLY `src/api/`. Other agents cover the rest — do not stray."
-3. **What to return, and in what shape.** Be explicit: "Return a list of findings, each as `file:line — one-sentence problem`. No preamble, no summary. Return the raw list; your final text is the data, not a message to a person."
-4. **Read-only or write.** State which. If read-only, say "Do not edit any files."
-
-Pick `subagent_type` per part: `Explore` for read-only searching, `general-purpose` for anything that edits or runs commands.
-
-Launch all of them in **one message with multiple `Agent` tool calls** — separate messages run them serially and waste the entire point.
-
-## Writes
-
-If more than one agent edits files, keep them in disjoint file sets — assign paths explicitly in each prompt. If the sets can't be made disjoint, pass `isolation: "worktree"` so each agent gets its own copy, then merge the diffs yourself.
-
-Never let two agents edit the same file. There is no lock, and the last write wins silently.
+If agents write, assign disjoint paths explicitly. If they can't be disjoint, pass `isolation: "worktree"` and merge the diffs yourself — two agents on one file is a silent last-write-wins.
 
 ## Synthesis
 
-Their results are input, not output. Do not paste them back.
+Their results are input, not output. Never paste them back.
 
-1. **Merge and dedupe.** The same issue found by three agents is one issue, reported once.
-2. **Resolve conflicts.** When two agents disagree, check the code yourself and say who was right. Do not report both and let the user referee.
-3. **Spot-check before you repeat.** Verify at least the load-bearing claims against the actual files. A subagent's confident wrong answer looks exactly like a right one.
-4. **Report the gaps.** If an agent returned nothing, failed, or covered less than its slice, say which part is uncovered. Silence reads as "clean" when it means "unchecked."
+- **Dedupe** — the same issue from three agents is one issue.
+- **Resolve** — when two disagree, check the code and say who was right. Don't make the user referee.
+- **Spot-check** — verify the load-bearing claims. A confident wrong answer looks exactly like a right one.
+- **Cover the gaps** — an agent that died returns `null`; re-run its slice. Silence reads as "clean" when it means "unchecked."
 
-Output one merged answer, ordered by what matters most — not one section per agent.
+Output one merged answer ordered by what matters most, not one section per agent.
