@@ -32,6 +32,20 @@ That means the tape is never run directly — it runs through a driver that stan
 throwaway world first. If you cannot isolate the tool, stop and say so rather than
 recording something that leaks.
 
+**And invented is not enough — fake secrets must not match a real provider's pattern.** A
+convincing `sk_live_` followed by 24 alphanumerics *is* Stripe's published key format, so secret
+scanners flag it and GitHub push protection rejects the entire repository, even though the value
+is meaningless. Break the pattern deliberately:
+
+```
+STRIPE_SECRET_KEY=sk_live_EXAMPLE_ONLY_not_a_real_key    # underscores break the alnum run
+SESSION_SECRET=example_only_not_a_real_session_secret
+```
+
+Same reasoning as never committing a generated keypair: **anything shaped like a credential will
+be treated as one.** Say so in a comment next to the fixture, or someone will later make the
+values look "more realistic" and re-break the push.
+
 ## Procedure
 
 1. **Classify.** TUI (keys, panes, live redraw) or CLI (commands, output, prompts)? Different
