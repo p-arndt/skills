@@ -1,20 +1,25 @@
 ---
 name: my-stack
-description: 'Reference for p-arndt''s shared project tooling: the reusable GitHub workflows in p-arndt/.github, the just modules in ~/coding/just-common, the stamp release tool, and the conventions every repo follows. Load it before touching CI, release, versioning, Dockerfiles, compose files or justfiles in any of the user''s repos, and before creating or migrating a repo. Also use when the user asks "how do my repos release", "which workflow/just module do I use", or mentions stamp, just-common, sync-common or p-arndt/.github.'
+description: 'Reference for p-arndt''s shared project tooling: the reusable GitHub workflows in p-arndt/.github, the just modules in p-arndt/just-common, the stamp release tool, and the conventions every repo follows. Load it before touching CI, release, versioning, Dockerfiles, compose files or justfiles in any of the user''s repos, and before creating or migrating a repo. Also use when the user asks "how do my repos release", "which workflow/just module do I use", or mentions stamp, just-common, sync-common or p-arndt/.github.'
 ---
 
 # my-stack
+
+The user works on macOS and Windows, and project checkouts live in different
+places per machine. Never assume a path: GitHub is the source of truth, and local
+checkouts are found by asking or by looking at the current repo's remotes.
 
 The user's repos share three pieces of tooling. Use them instead of writing CI,
 release scripts or task-runner recipes from scratch; a repo-local copy is only
 right when the shared piece genuinely cannot express the need, and then say so.
 
-Current migration status per repo: `~/notes/workflow-status.md`.
-
 ## 1. Reusable workflows: `p-arndt/.github` (public)
 
-Local checkout: `~/coding/dotgithub/`. Callers pin `@v1` (a moving tag; releases
-are `v1.x.y`). Every third-party action inside is SHA-pinned.
+Callers pin `@v1` (a moving tag; releases are `v1.x.y`). Every third-party action
+inside is SHA-pinned. Read a workflow without a checkout:
+`gh api repos/p-arndt/.github/contents/.github/workflows/<file> --jq .content | base64 -d`
+(PowerShell: pipe through `[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(...))`)
+or `gh repo clone p-arndt/.github` into a temp dir.
 
 | Workflow | For | Key inputs |
 |---|---|---|
@@ -25,7 +30,7 @@ are `v1.x.y`). Every third-party action inside is SHA-pinned.
 | `container-release.yml` | any image | `image`, `target`, `platforms`, `cache` gha\|registry, `changelog` |
 | `sveltekit-ci.yml` | SvelteKit | `env` placeholders, `check`/`lint`/`test`/`build` toggles + commands, `setup-command` |
 
-Caller examples: `~/coding/dotgithub/examples/`. Read the workflow file for the
+Caller examples: `examples/` in the same repo. Read the workflow file for the
 full input list before writing a caller.
 
 Rules:
@@ -34,12 +39,17 @@ Rules:
 - Repo-specific jobs the shared workflow can't do (Postgres e2e, smoke tests, db drift, govulncheck, installers) stay as **local jobs** next to the reusable call. Never drop coverage.
 - `sveltekit-ci` takes the pnpm version from `packageManager` in package.json; it must exist.
 - A job that calls a reusable workflow cannot declare `environment:`.
-- Changing the shared repo: edit in `~/coding/dotgithub`, commit, tag `v1.x.y`, move `v1` (`git tag -f v1 && git push -f origin v1`). Callers pick it up without edits.
+- Changing the shared repo: work in a clone of p-arndt/.github, commit, tag `v1.x.y`, move `v1` (`git tag -f v1 && git push -f origin v1`). Callers pick it up without edits.
 
-## 2. just modules: `~/coding/just-common`
+## 2. just modules: `p-arndt/just-common` (public)
 
-Each project keeps a **committed copy** in `.just/` (CI and Windows need the files
-in the repo). `just sync-common` refreshes the modules a project already has.
+Each project keeps a **committed copy** in `.just/` (CI needs the files in the
+repo). `just sync-common` downloads the current version of every module the
+project already has from GitHub (`curl` on unix, `Invoke-WebRequest` on Windows).
+`JUST_COMMON=<local checkout>` copies from a clone instead (to test unpushed
+changes); `JUST_COMMON_REF=<tag>` pins the version. Add a module to a project by
+downloading `https://raw.githubusercontent.com/p-arndt/just-common/main/<module>.just`
+into `.just/`.
 
 | Module | Recipes | Project sets |
 |---|---|---|
@@ -55,13 +65,14 @@ Rules:
 - The project justfile holds only project-specific recipes and variables.
 - Recipe bodies stay plain command calls so they parse in sh and pwsh. Use just built-ins (`read()`, `datetime_utc()`, `os_family()`, `env()`) instead of shell for versions, dates, `.exe`. Only real shell logic gets a `[unix]`/`[windows]` pair.
 - A recipe whose comment spans several lines gets `[doc('one line')]`, otherwise `just --list` shows the wrong line.
-- Fix a shared module in `~/coding/just-common`, commit there, then `just sync-common` in every project and commit `.just/` per repo. Never edit `.just/` in a project by hand.
+- Fix a shared module in a clone of p-arndt/just-common, commit and push, then `just sync-common` in every project and commit `.just/` per repo. Never edit `.just/` in a project by hand.
 - Known gaps: `docker.just` has no buildx/`PLATFORM` (orbit keeps a local `docker-push` for amd64). `android.just` assumes Gradle; cooking-diary's mobile uses the Kotlin toolchain (`./kotlin`, Amper) and overrides most recipes.
 - In repos with a `mobile` module: root `just release` = stamp release, `just mobile release` = app build.
 
 ## 3. Versioning and releases: `stamp`
 
-`~/coding/stamp`, installed at `~/.local/bin/stamp` (`stamp self-update`).
+Repo `p-arndt/stamp`; install with its `install.sh` / `install.ps1`, update with
+`stamp self-update`. Check `stamp version` before relying on a feature.
 stamp owns the version files, the release commit (`release: v1.2.3`), the tag and
 the push. Never hand-edit VERSION / version fields / CHANGELOG.md.
 

@@ -1,6 +1,6 @@
 ---
 name: new-project
-description: 'Scaffold a new repo in ~/coding the way all of p-arndt''s projects are set up: shared just modules, stamp versioning, reusable CI/release callers from p-arndt/.github, .gitignore, .editorconfig, README, AGENTS.md. Stacks: go-cli, rust, sveltekit, android (KMP/Compose). Use when the user says "neues Projekt", "new project", "leg ein Repo an", "scaffold", or runs /new-project.'
+description: 'Scaffold a new repo the way all of p-arndt''s projects are set up: shared just modules, stamp versioning, reusable CI/release callers from p-arndt/.github, .gitignore, .editorconfig, README, AGENTS.md. Stacks: go-cli, rust, sveltekit, android (KMP/Compose). Use when the user says "neues Projekt", "new project", "leg ein Repo an", "scaffold", or runs /new-project.'
 argument-hint: '<name> <go-cli|rust|sveltekit|android> [public|private]'
 ---
 
@@ -11,7 +11,7 @@ migration later. Load the `my-stack` skill first: it describes the workflows,
 just modules and stamp this scaffold wires together.
 
 ```
-/new-project ping go-cli            Go CLI in ~/coding/ping
+/new-project ping go-cli            Go CLI in ./ping
 /new-project recipes sveltekit      SvelteKit app with image release
 /new-project netscan rust public
 ```
@@ -21,15 +21,19 @@ visibility `private`, description empty, version `0.1.0`.
 
 ## Steps
 
-1. **Target.** `~/coding/<name>` must not exist. If it does, stop and say so.
+1. **Target.** `./<name>` under the current directory, or the path the user gives.
+   It must not exist; if it does, stop and say so. The user works on macOS and
+   Windows with projects in different places, so never assume a projects folder.
+   Use commands that work in the current shell (bash/zsh or PowerShell).
 2. **Stack skeleton**, created by the stack's own tool where there is one:
    - `go-cli`: `go mod init github.com/p-arndt/<name>`, `main.go`, `internal/buildinfo/buildinfo.go` (vars `Version="dev"`, `Commit`, `Date`, set by ldflags; fall back to `runtime/debug.ReadBuildInfo` so `go install` builds report a version), `VERSION` = `0.1.0`.
    - `rust`: `cargo new <name>` (or a workspace if the user asks for several crates).
    - `sveltekit`: `pnpm dlx sv create <name>` with TypeScript, prettier, eslint, vitest; then apply the `sveltekit-modular-monolith` skill. Set `packageManager` in package.json to the installed pnpm (`pnpm --version`).
-   - `android`: copy the Gradle/KMP layout from the newest Android repo the user has (check `~/coding/firstless`, `~/coding/mobmo` for a version catalog) rather than guessing versions; `applicationId` `de.parndt.<name>`.
-3. **just.** `mkdir .just` and copy from `~/coding/just-common`: `common.just` always, plus `go.just` / `rust.just` / `android.just`, `docker.just` if the project ships an image, `release.just` always. Write a short `justfile`:
+   - `android`: copy the Gradle/KMP layout from the newest Android repo the user has (ask where it lives if it isn't obvious; look for `gradle/libs.versions.toml`) rather than guessing versions; `applicationId` `de.parndt.<name>`.
+3. **just.** Create `.just/` and download each module from
+   `https://raw.githubusercontent.com/p-arndt/just-common/main/<module>.just`: `common.just` always, plus `go.just` / `rust.just` / `android.just`, `docker.just` if the project ships an image, `release.just` always. Write a short `justfile`:
    ```just
-   # <name> — task runner. Shared recipes live in .just/ (from ~/coding/just-common):
+   # <name> — task runner. Shared recipes live in .just/ (from p-arndt/just-common):
    # edit them there and run `just sync-common`. This file holds only <name>'s own.
 
    import '.just/common.just'
@@ -41,7 +45,7 @@ visibility `private`, description empty, version `0.1.0`.
    ```
    SvelteKit gets thin `dev`, `check`, `test`, `ci` recipes over its pnpm scripts.
 4. **stamp.** `stamp current` must print the version. If the version lives somewhere stamp does not detect, run `stamp init --yes`. Rust workspaces get `hooks: after_write: [cargo update --workspace]` in `.stamp.yml`.
-5. **CI and release callers** in `.github/workflows/`, copied from `~/coding/dotgithub/examples/` and adjusted (see `my-stack` for inputs):
+5. **CI and release callers** in `.github/workflows/`, based on `examples/` in p-arndt/.github (read via `gh api` or a temp clone) and adjusted (see `my-stack` for inputs):
    - go-cli: `ci.yml` → `go-ci`, `release.yml` → `go-release` (archive, changelog stamp).
    - rust: `ci.yml` → `rust-ci`, `release.yml` → `rust-release`.
    - sveltekit: `ci.yml` → `sveltekit-ci` (with `on: workflow_call` too), `release.yml` → local `ci` job + `container-release` with `needs: ci`.
