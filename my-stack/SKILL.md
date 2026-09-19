@@ -57,7 +57,7 @@ into `.just/`.
 | `go.just` | `run build build-release test vet fmt fmt-check lint ci clean` | `BIN_NAME`, `BUILDINFO_PKG`, opt. `MAIN` |
 | `rust.just` | `run build build-release check test fmt fmt-check clippy/lint ci clean` | opt. `CARGO_SCOPE`, `RUN_PKG` |
 | `android.just` | `emulator android apk apk-release test logcat clean doctor` | `APP_ID`, opt. `GRADLE_MODULE`, `ACTIVITY`, `AVD`, `APK_DIR` |
-| `docker.just` | `image push up down logs ps` | `IMAGE`, opt. `REGISTRY`, `DOCKERFILE`, `TARGET`, `COMPOSE` |
+| `docker.just` | `image push up down logs ps` | `IMAGE`, opt. `REGISTRY`, `DOCKERFILE`, `TARGET`, `COMPOSE`, `PLATFORM` |
 | `release.just` | `version set-version release release-dry prerelease note changelog` | — (uses `stamp` on PATH) |
 
 Rules:
@@ -66,7 +66,8 @@ Rules:
 - Recipe bodies stay plain command calls so they parse in sh and pwsh. Use just built-ins (`read()`, `datetime_utc()`, `os_family()`, `env()`) instead of shell for versions, dates, `.exe`. Only real shell logic gets a `[unix]`/`[windows]` pair.
 - A recipe whose comment spans several lines gets `[doc('one line')]`, otherwise `just --list` shows the wrong line.
 - Fix a shared module in a clone of p-arndt/just-common, commit and push, then `just sync-common` in every project and commit `.just/` per repo. Never edit `.just/` in a project by hand.
-- Known gaps: `docker.just` has no buildx/`PLATFORM` (orbit keeps a local `docker-push` for amd64). `android.just` assumes Gradle; cooking-diary's mobile uses the Kotlin toolchain (`./kotlin`, Amper) and overrides most recipes.
+- `just image` builds for this machine (local testing); `just push [tag]` builds with buildx for `PLATFORM` (default `linux/amd64`, the VPS) and pushes `:<tag>` + `:latest`. orbit keeps `docker-push` as an alias.
+- Known gaps: `android.just` assumes Gradle; cooking-diary's mobile uses the Kotlin toolchain (`./kotlin`, Amper) and overrides most recipes.
 - In repos with a `mobile` module: root `just release` = stamp release, `just mobile release` = app build.
 
 ## 3. Versioning and releases: `stamp`
