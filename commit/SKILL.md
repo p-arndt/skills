@@ -68,6 +68,11 @@ type(scope): lowercase imperative subject
 
 For each planned commit, stage exactly its paths or hunks, then run `git commit -m "<subject>" [-m "<body>"]`.
 
+`git commit` commits the **whole index**, not just what you staged. Before every commit, run `git diff --cached --name-only` and compare it with the commit's paths. If anything else is staged (another session, the user):
+- Whole-file commit: `git commit -m "…" -- <your paths>` commits only those paths and leaves the foreign entries staged.
+- Hunk-staged commit (pathspec would take the whole working-tree file): save the foreign staged state with `git diff --cached -- <foreign paths> > /tmp/foreign.patch`, unstage it with `git restore --staged -- <foreign paths>`, commit, then restore it with `git apply --cached /tmp/foreign.patch`.
+Afterwards check `git show --stat HEAD`: it must list only your paths. If it doesn't, and the commit isn't pushed, `git reset --soft HEAD~1` and redo it.
+
 **If a hook fails:** read the output, fix the cause (lint, format, types) in the files involved, restage, and run a **new** `git commit`. If the hook changed or formatted files itself, restage those files and commit again. Don't bypass hooks and don't amend. If the failure is outside your changes and can't be fixed reasonably, stop and report the hook error in one line.
 
 **If `push` is in the args:** after all commits succeed, run `git push`. If there's no upstream, use `git push -u origin <current-branch>`. If the push is rejected, report it in one line. Don't pull, rebase, or force.
