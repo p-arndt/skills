@@ -66,7 +66,7 @@ Rules:
 - Recipe bodies stay plain command calls so they parse in sh and pwsh. Use just built-ins (`read()`, `datetime_utc()`, `os_family()`, `env()`) instead of shell for versions, dates, `.exe`. Only real shell logic gets a `[unix]`/`[windows]` pair.
 - A recipe whose comment spans several lines gets `[doc('one line')]`, otherwise `just --list` shows the wrong line.
 - Fix a shared module in a clone of p-arndt/just-common, commit and push, then `just sync-common` in every project and commit `.just/` per repo. Never edit `.just/` in a project by hand.
-- `just image` builds for this machine (local testing); `just push [tag]` builds with buildx for `PLATFORM` (default `linux/amd64`, the VPS) and pushes `:<tag>` + `:latest`. orbit keeps `docker-push` as an alias.
+- `just image` builds for this machine (local testing); `just push [tag]` builds with buildx for `PLATFORM` (default `linux/amd64`, the VPS) and pushes `:<tag>` + `:latest` to `REGISTRY`, default `reg.allthing.eu` (the private registry the VPS pulls from), e.g. `reg.allthing.eu/blog:latest`. orbit and blog keep `docker-push` as an alias.
 - Known gaps: `android.just` assumes Gradle; cooking-diary's mobile uses the Kotlin toolchain (`./kotlin`, Amper) and overrides most recipes.
 - In repos with a `mobile` module: root `just release` = stamp release, `just mobile release` = app build.
 
@@ -89,7 +89,7 @@ the push. Never hand-edit VERSION / version fields / CHANGELOG.md.
 - Conventional Commits, lowercase imperative subject.
 - Go module path `github.com/p-arndt/<repo>`; build info via ldflags into `internal/buildinfo` (Version, Commit, Date).
 - Self-updating Go CLIs use `github.com/p-arndt/selfupdate` (command `self-update`). shenv still has its own updater.
-- Images: `ghcr.io/p-arndt/<repo>`, scratch (Go/Rust static) or `gcr.io/distroless/*:nonroot`; see the `dockerfile` skill.
+- Images: CI tag releases publish `ghcr.io/p-arndt/<repo>`; manual `just push` goes to `reg.allthing.eu/<repo>`. Base: scratch (Go/Rust static) or `gcr.io/distroless/*:nonroot`; see the `dockerfile` skill.
 - Compose: `compose.yaml` (+ `compose.prod.yaml`), `postgres:18`, dev IdP/mail/S3 via `ghcr.io/p-arndt/minisuite`.
 - Database env is always `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` (the postgres image's names), never `DATABASE_URL`; the app builds the URL itself.
 - SvelteKit apps: see the `sveltekit-modular-monolith` skill; pnpm pinned via `packageManager`.
