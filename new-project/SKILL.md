@@ -28,7 +28,7 @@ visibility `private`, description empty, version `0.1.0`.
 2. **Stack skeleton**, created by the stack's own tool where there is one:
    - `go-cli`: `go mod init github.com/p-arndt/<name>`, `main.go`, `internal/buildinfo/buildinfo.go` (vars `Version="dev"`, `Commit`, `Date`, set by ldflags; fall back to `runtime/debug.ReadBuildInfo` so `go install` builds report a version), `VERSION` = `0.1.0`.
    - `rust`: `cargo new <name>` (or a workspace if the user asks for several crates).
-   - `sveltekit`: `pnpm dlx sv create <name>` with TypeScript, prettier, eslint, vitest; then apply the `sveltekit-modular-monolith` skill. Set `packageManager` in package.json to the installed pnpm (`pnpm --version`).
+   - `sveltekit`: `pnpm dlx sv create <name>` with TypeScript, prettier, eslint, vitest; then apply the `sveltekit-modular-monolith` skill. Replace the drizzle add-on's `DATABASE_URL` with `POSTGRES_HOST/PORT/USER/PASSWORD/DB` (see that skill's testing-ops reference, "Configuration"). Set `packageManager` in package.json to the installed pnpm (`pnpm --version`).
    - `android`: copy the Gradle/KMP layout from the newest Android repo the user has (ask where it lives if it isn't obvious; look for `gradle/libs.versions.toml`) rather than guessing versions; `applicationId` `de.parndt.<name>`.
 3. **just.** Create `.just/` and download each module from
    `https://raw.githubusercontent.com/p-arndt/just-common/main/<module>.just`: `common.just` always, plus `go.just` / `rust.just` / `android.just`, `docker.just` if the project ships an image, `release.just` always. Write a short `justfile`:

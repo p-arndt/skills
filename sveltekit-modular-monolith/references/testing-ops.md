@@ -120,7 +120,15 @@ Multi-stage: build with pnpm, runtime distroless or slim Node as non-root, one i
 ## Configuration
 
 Everything in env, documented in `.env.example`, no defaults for secrets. `ORIGIN` is the public
-URL. Structured JSON logs with `requestId`, `tenantId`, `userId`; never log payloads of audited
+URL.
+
+Postgres is configured as `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`,
+`POSTGRES_DB` — the same names the `postgres` image and `compose.yaml` use — never a
+`DATABASE_URL`. One dependency-free `databaseUrlFrom(env)` in
+`src/lib/server/platform/database-url.ts` builds the connection string (URL-encoding user,
+password and database) and is shared by `config.ts`, `drizzle.config.ts`, the scripts under
+`scripts/` and the test harness. `sv create`'s drizzle add-on writes `DATABASE_URL`; replace it
+right after scaffolding. Structured JSON logs with `requestId`, `tenantId`, `userId`; never log payloads of audited
 tables. OpenTelemetry hooks in place, no exporter until needed.
 
 ## Backup and release

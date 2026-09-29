@@ -91,6 +91,7 @@ the push. Never hand-edit VERSION / version fields / CHANGELOG.md.
 - Self-updating Go CLIs use `github.com/p-arndt/selfupdate` (command `self-update`). shenv still has its own updater.
 - Images: `ghcr.io/p-arndt/<repo>`, scratch (Go/Rust static) or `gcr.io/distroless/*:nonroot`; see the `dockerfile` skill.
 - Compose: `compose.yaml` (+ `compose.prod.yaml`), `postgres:18`, dev IdP/mail/S3 via `ghcr.io/p-arndt/minisuite`.
+- Database env is always `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` (the postgres image's names), never `DATABASE_URL`; the app builds the URL itself.
 - SvelteKit apps: see the `sveltekit-modular-monolith` skill; pnpm pinned via `packageManager`.
 - Agent docs: `AGENTS.md` holds the content, `CLAUDE.md` is just `@AGENTS.md`.
 
