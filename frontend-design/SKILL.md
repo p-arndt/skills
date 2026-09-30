@@ -80,7 +80,9 @@ every app's first impression, needs at least two of these, done with real craft:
   big number.
 - **Real imagery when the subject is physical.** Plants, food, places, hardware, people:
   use photographs (Unsplash / Pexels by URL, with `alt`, `aspect-ratio`,
-  `object-fit: cover`). Crop them tight and give them consistent treatment. A nursery with
+  `object-fit: cover`). Crop them tight and give them consistent treatment. Remembered photo
+  URLs are often dead or show something else, so check each one (`curl -sI`) and look at a
+  small version before using it. A nursery with
   no photo of a plant has failed the brief.
 - **Type at a scale that commits.** A hero at 5–8rem with tight tracking, next to 13px meta
   text. Or one enormous number. The size contrast is the design.

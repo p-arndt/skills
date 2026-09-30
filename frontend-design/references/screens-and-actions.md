@@ -85,7 +85,8 @@ default unless the listed condition for deviating applies.
   one global Save at the bottom of a long page.
 - **Dirty state:** a sticky bar "Unsaved changes · Discard · Save". With per-section saves, the
   bar's button is "Save all" and saves every dirty section. Guard navigation and
-  `beforeunload`. Keep Save **enabled** and validate on click.
+  `beforeunload`. Keep Save **enabled** and validate on click. The one exception is type-to-confirm: its
+  danger button stays disabled until the typed name matches.
 - **Cell edit:** Enter or double-click opens the editor. Enter commits and moves down, Tab
   commits and moves right, Esc reverts. Blur commits. Errors stay inside the cell.
 - A failed save keeps the input and shows the error next to it.
